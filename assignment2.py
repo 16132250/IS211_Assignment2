@@ -7,20 +7,23 @@ import requests
 logging.basicConfig(filename='errors.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 def downloadData(url):
-    """Downloads the data"""
+    """Downloads the data and returns the contents"""
     csvData = requests.get(url)
     # print(csvData.text)
 
     return csvData.text
 
 def dtConvert(fieldname):
+    """To format the date found in the imported data file"""
     formatted = r'%d/%m/%Y'
-    converted = (datetime.datetime.strptime(fieldname, formatted))
+    converted = (datetime.datetime.strptime(fieldname, formatted).date())
+    formatted_date = converted.strftime('%Y-%m-%d')
 
-    return converted
+    return formatted_date
 
 def processData(file_content):
-    url_result = {}
+    """Returns the data in dictionary format"""
+    url_result = []
 
     rows = file_content.split('\n')
     linenum = 0
@@ -30,8 +33,14 @@ def processData(file_content):
 
         try:
             if len(cells) == 3:
+                person_data = {
+                    'id': int(cells[0]),
+                    'name': cells[1],
+                    'birthdate': dtConvert(cells[2])
+                }
+                url_result.append(person_data)
 
-                url_result[int(cells[0])] = (cells[1], dtConvert(cells[2]))
+                # url_result[int(cells[0])] = (cells[1], dtConvert(cells[2]))
 
         except(ValueError):
             logging.error(f'Error processing line # {linenum} for ID #{cells[0]}')
@@ -42,7 +51,15 @@ def processData(file_content):
     return url_result
 
 def displayPerson(id, personData):
-    print(f'from dislpayPerson: {personData[id]}')
+    """Prints the name and data of the people found in the download"""
+    # print(f'from dislpayPerson: {personData[id]}')
+
+    for person in personData:
+        if person['id'] == id:
+            print(f"Person #{id} is {person['name']} with a birthday of {person['birthdate']}")
+            return
+
+    print('No user found with that id')
 
 def main(url):
     print(f"Running main with URL = {url}")
@@ -61,7 +78,7 @@ def main(url):
                 displayPerson(get_id, processData(downloadData(url)))
 
             except(KeyError):
-                print('No user found with that id')
+                print('Main: No user found with that id')
         else:
             a = 1
 
